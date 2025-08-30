@@ -9,6 +9,7 @@ import { healthRouter } from './routes/health';
 import { queueRouter } from './routes/queue';
 import { metricsRouter } from './routes/metrics';
 import { rootRouter } from './routes/root';
+import { telegramRouter } from './routes/telegram';
 
 export const app = express();
 
@@ -35,6 +36,7 @@ app.use('/api/', limiter);
 app.use('/', rootRouter);
 app.use('/api/health', healthRouter);
 app.use('/api/queue', queueRouter);
+app.use('/api/telegram', telegramRouter);
 app.use('/metrics', metricsRouter);
 
 app.use(notFoundHandler);

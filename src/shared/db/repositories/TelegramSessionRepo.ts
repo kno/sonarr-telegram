@@ -27,5 +27,8 @@ export class TelegramSessionRepo {
       [encrypted, keyVersion],
     );
   }
-}
 
+  static async clear(): Promise<void> {
+    await dbPool.query('DELETE FROM telegram_sessions WHERE id=1');
+  }
+}

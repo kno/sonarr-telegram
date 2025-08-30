@@ -49,21 +49,20 @@ export class TelegramService {
       return;
     }
     const session = await this.loadSession();
+    const saved = session.save();
+    if (!saved) {
+      logger.info('No Telegram session found. Skipping Telegram client start until web login completes.');
+      return;
+    }
     this.client = new TelegramClient(session, env.TELEGRAM_API_ID, env.TELEGRAM_API_HASH, {
       connectionRetries: 5,
     });
 
-    await this.client.start({
-      phoneNumber: async () => {
-        throw new Error('Interactive login not supported in service. Use CLI/one-off to initialize session.');
-      },
-      phoneCode: async () => '',
-      password: async () => '',
-      onError: (err) => logger.error({ err }, 'Telegram start error'),
-    });
+    // With a valid StringSession, connecting is sufficient; avoid interactive start()
+    await this.client.connect();
 
     this.running = true;
-    logger.info('Telegram client started');
+    logger.info('Telegram client connected with stored session');
     void this.subscribe();
   }
 
