@@ -1,69 +1,59 @@
-# sonarr-telegram-v1
+# Sonarr Telegram Integration (v1)
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Router, Fastify, TRPC, and more.
+Sistema profesional para integrar Telegram con Sonarr, priorizando calidad de código, seguridad y mantenibilidad.
 
-## Features
+## Stack
 
-- **TypeScript** - For type safety and improved developer experience
-- **TanStack Router** - File-based routing with full type safety
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **shadcn/ui** - Reusable UI components
-- **Fastify** - Fast, low-overhead web framework
-- **tRPC** - End-to-end type-safe APIs
-- **Bun** - Runtime environment
-- **Drizzle** - TypeScript-first ORM
-- **MySQL** - Database engine
-- **Authentication** - Better-Auth
-- **Turborepo** - Optimized monorepo build system
+- Backend: Node.js + TypeScript
+- Framework: Express.js
+- DB: (future) SQLite/PostgreSQL
+- Telegram: GramJS (`telegram`)
+- Queue: BullMQ + Redis
+- Testing: Jest
+- Docs: TypeDoc
+- Logging: Pino
 
-## Getting Started
+## Quickstart
 
-First, install the dependencies:
+1. Inicializa entorno: `bun run setup:env` y ajusta `.env`
+2. Instala dependencias: `bun install`
+3. Build: `bun run build`
+4. Desarrollo (hot-reload): `bun run dev:all` (levanta Redis y app)
+   - Solo app: `bun run dev`
+   - Solo Redis: `bun run dev:up`
+5. Producción local: `bun run start`
 
-```bash
-bun install
-```
-## Database Setup
+Docker (dev): `docker compose up --build -d`
 
-This project uses MySQL with Drizzle ORM.
+## Endpoints
 
-1. Make sure you have a MySQL database set up.
-2. Update your `apps/server/.env` file with your MySQL connection details.
+- `GET /api/health` – healthcheck
+- `POST /api/queue/enqueue` – encola texto con enlaces (magnet/.torrent)
+- `GET /metrics` – métricas Prometheus
 
-3. Apply the schema to your database:
-```bash
-bun db:push
-```
+## Estructura
 
+- `src/web` – app Express, rutas y middlewares
+- `src/shared` – config, logging, errores, métricas, utils
+- `src/services/telegram` – cliente GramJS (sesiones encriptadas)
+- `src/services/sonarr` – cliente Sonarr con retry
+- `src/worker` – cola BullMQ y worker
 
-Then, run the development server:
+## Seguridad
 
-```bash
-bun dev
-```
+- Middlewares: Helmet, CORS, Rate limiting
+- Sanitización básica de URLs de entrada
+- Sesiones de Telegram encriptadas (AES-256-GCM con `TELEGRAM_ENC_SECRET`)
 
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the web application.
-The API is running at [http://localhost:3000](http://localhost:3000).
+## Pruebas
 
+`bun run test` ejecuta unit tests (Jest). Cobertura se genera en `coverage/`.
 
+## Roadmap (próximos pasos)
 
-
-
-## Project Structure
-
-```
-sonarr-telegram-v1/
-├── apps/
-│   ├── web/         # Frontend application (React + TanStack Router)
-│   └── server/      # Backend API (Fastify, TRPC)
-```
-
-## Available Scripts
-
-- `bun dev`: Start all applications in development mode
-- `bun build`: Build all applications
-- `bun dev:web`: Start only the web application
-- `bun dev:server`: Start only the server
-- `bun check-types`: Check TypeScript types across all apps
-- `bun db:push`: Push schema changes to database
-- `bun db:studio`: Open database studio UI
+- Persistencia (SQLite/Postgres) con almacenamiento encriptado de credenciales
+- CLI de inicialización de sesión MTProto
+- Validación robusta de metadatos + priorización de descargas
+- Integración Sonarr end-to-end (descargas + monitoreo de estado)
+- Autenticación API y autorización por canales permitidos
+- CI/CD: publicación de imágenes y análisis de seguridad
