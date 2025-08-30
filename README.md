@@ -17,24 +17,29 @@ Sistema profesional para integrar Telegram con Sonarr, priorizando calidad de c�
 
 1. Inicializa entorno: `bun run setup:env` y ajusta `.env`
 2. Instala dependencias: `bun install`
-3. Build: `bun run build`
-4. Desarrollo (hot-reload): `bun run dev:all` (levanta Redis y app)
-   - Solo app: `bun run dev`
-   - Solo Redis: `bun run dev:up`
-5. Producción local: `bun run start`
+3. Levanta infraestructura dev: `bun run dev:up` (Redis + MariaDB)
+4. Migraciones en dev: `bun run db:migrate:dev`
+5. Desarrollo (hot-reload): `bun run dev`
+6. Producción local: `bun run build` y `bun run start`
 
 Docker (dev): `docker compose up --build -d`
 
-## Endpoints
+## Endpoints / URLs
 
-- `GET /api/health` – healthcheck
-- `POST /api/queue/enqueue` – encola texto con enlaces (magnet/.torrent)
-- `GET /metrics` – métricas Prometheus
+- Base: `http://localhost:3000` (configurable con `PORT`)
+- `GET /api/health`: estado del servicio (JSON)
+- `GET /api/health/metrics`: métricas Prometheus desde health
+- `GET /metrics`: métricas Prometheus (texto)
+- `POST /api/queue/enqueue`: encola texto; extrae enlaces magnet/.torrent
+  - Body: `{ "text": "...", "source": "api"? }`
+  - Respuesta: `202 { "accepted": <n> }` o `400` si no hay enlaces
+  - Nota: rate limiting activo en `/api/*`
 
 ## Estructura
 
 - `src/web` – app Express, rutas y middlewares
 - `src/shared` – config, logging, errores, métricas, utils
+- `src/shared/db` – pool MariaDB, migraciones y repositorios
 - `src/services/telegram` – cliente GramJS (sesiones encriptadas)
 - `src/services/sonarr` – cliente Sonarr con retry
 - `src/worker` – cola BullMQ y worker
@@ -51,7 +56,7 @@ Docker (dev): `docker compose up --build -d`
 
 ## Roadmap (próximos pasos)
 
-- Persistencia (SQLite/Postgres) con almacenamiento encriptado de credenciales
+- Persistencia (MariaDB) con almacenamiento encriptado de credenciales
 - CLI de inicialización de sesión MTProto
 - Validación robusta de metadatos + priorización de descargas
 - Integración Sonarr end-to-end (descargas + monitoreo de estado)

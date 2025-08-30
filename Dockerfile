@@ -14,6 +14,7 @@ FROM oven/bun:1-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/dist ./dist
+COPY migrations ./migrations
 COPY package.json bun.lockb* .
 COPY --from=deps /app/node_modules ./node_modules
 EXPOSE 3000

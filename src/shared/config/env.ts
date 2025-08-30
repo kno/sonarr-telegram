@@ -13,6 +13,13 @@ const EnvSchema = z.object({
   // Redis for queue
   REDIS_URL: z.string().default('redis://redis:6379'),
 
+  // MariaDB
+  DB_HOST: z.string().default('127.0.0.1'),
+  DB_PORT: z.coerce.number().int().default(3306),
+  DB_USER: z.string().default('app'),
+  DB_PASSWORD: z.string().default('app'),
+  DB_NAME: z.string().default('sonarr_telegram'),
+
   // Sonarr
   SONARR_URL: z.string().url().optional(),
   SONARR_API_KEY: z.string().optional(),
@@ -43,4 +50,3 @@ export function allowedChannels(): number[] {
     .map((s) => Number(s))
     .filter((n) => Number.isFinite(n));
 }
-

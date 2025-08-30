@@ -8,6 +8,7 @@ import { errorHandler, notFoundHandler } from './middleware/error';
 import { healthRouter } from './routes/health';
 import { queueRouter } from './routes/queue';
 import { metricsRouter } from './routes/metrics';
+import { rootRouter } from './routes/root';
 
 export const app = express();
 
@@ -31,10 +32,10 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+app.use('/', rootRouter);
 app.use('/api/health', healthRouter);
 app.use('/api/queue', queueRouter);
 app.use('/metrics', metricsRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
-

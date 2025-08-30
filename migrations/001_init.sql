@@ -1,0 +1,14 @@
+-- migrations table is created programmatically if not exists
+
+CREATE TABLE IF NOT EXISTS telegram_sessions (
+  id INT PRIMARY KEY DEFAULT 1,
+  session_encrypted TEXT NOT NULL,
+  key_version INT NOT NULL DEFAULT 1,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS allowed_channels (
+  channel_id BIGINT PRIMARY KEY,
+  added_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+

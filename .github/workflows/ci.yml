@@ -8,17 +8,44 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: sonarr_telegram
+          MARIADB_USER: app
+          MARIADB_PASSWORD: app
+        ports:
+          - 3306:3306
+        # Ensure DB is ready
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          node-version: 20
-          cache: npm
-      - run: npm ci --ignore-scripts
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm test -- --ci
-      - run: npm run build
+          bun-version: latest
+      - name: Install deps
+        run: bun install --frozen-lockfile || bun install
+      - name: Typecheck
+        run: bun run typecheck
+      - name: Lint
+        run: bun run lint
+      - name: Build
+        run: bun run build
+      - name: Migrate DB
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: app
+          DB_PASSWORD: app
+          DB_NAME: sonarr_telegram
+        run: bun run db:migrate
+      - name: Tests
+        run: bun run test -- --ci
   docker:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -34,4 +61,3 @@ jobs:
         with:
           context: .
           push: false
-

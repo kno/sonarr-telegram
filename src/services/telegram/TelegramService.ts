@@ -11,9 +11,9 @@ import { env, allowedChannels } from '../../shared/config/env';
 import { extractLinks } from '../../shared/utils/parser';
 import { messageQueue } from '../../worker/queue';
 import crypto from 'crypto';
+import { TelegramSessionRepo } from '../../shared/db/repositories/TelegramSessionRepo';
+import { AllowedChannelRepo } from '../../shared/db/repositories/AllowedChannelRepo';
 
-// In-memory placeholder for encrypted session; replace with DB
-let encryptedSessionBlob: string | null = null;
 
 function encrypt(data: string, secret: string): string {
   const iv = crypto.randomBytes(12);
@@ -75,7 +75,9 @@ export class TelegramService {
 
   private async subscribe(): Promise<void> {
     if (!this.client) return;
-    const allow = new Set(allowedChannels());
+    // Prefer DB allowlist, fallback to env if empty
+    const dbAllow = new Set(await AllowedChannelRepo.list());
+    const allow = dbAllow.size > 0 ? dbAllow : new Set(allowedChannels());
     this.client.addEventHandler(async (update) => {
       try {
         if (!('message' in update) || !update.message) return;
@@ -97,8 +99,9 @@ export class TelegramService {
 
   private async loadSession(): Promise<StringSession> {
     if (!env.TELEGRAM_ENC_SECRET) throw new Error('Missing TELEGRAM_ENC_SECRET');
-    if (!encryptedSessionBlob) return new StringSession('');
-    const raw = decrypt(encryptedSessionBlob, env.TELEGRAM_ENC_SECRET);
+    const rec = await TelegramSessionRepo.get();
+    if (!rec) return new StringSession('');
+    const raw = decrypt(rec.session_encrypted, env.TELEGRAM_ENC_SECRET);
     return new StringSession(raw);
   }
 
@@ -106,9 +109,9 @@ export class TelegramService {
     if (!env.TELEGRAM_ENC_SECRET) throw new Error('Missing TELEGRAM_ENC_SECRET');
     if (!this.client) return;
     const session = (this.client.session as StringSession).save();
-    encryptedSessionBlob = encrypt(session, env.TELEGRAM_ENC_SECRET);
+    const encrypted = encrypt(session, env.TELEGRAM_ENC_SECRET);
+    await TelegramSessionRepo.upsert(encrypted, 1);
   }
 }
 
 export const telegramService = new TelegramService();
-

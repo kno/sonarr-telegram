@@ -7,6 +7,11 @@ services:
       - NODE_ENV=development
       - PORT=3000
       - REDIS_URL=redis://redis:6379
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - DB_USER=app
+      - DB_PASSWORD=app
+      - DB_NAME=sonarr_telegram
       # - SONARR_URL=
       # - SONARR_API_KEY=
       # - TELEGRAM_API_ID=
@@ -16,12 +21,35 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - redis
+      redis:
+        condition: service_started
+      mariadb:
+        condition: service_healthy
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+
+  mariadb:
+    image: mariadb:11
+    environment:
+      - MARIADB_ROOT_PASSWORD=root
+      - MARIADB_DATABASE=sonarr_telegram
+      - MARIADB_USER=app
+      - MARIADB_PASSWORD=app
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
+volumes:
+  mariadb_data:
 
   # postgres:
   #   image: postgres:16-alpine
