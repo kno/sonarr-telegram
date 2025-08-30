@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
 type Status = { configured: boolean; loggedIn: boolean };
+type Channel = { id: number; title: string };
+type ChannelGroup = { group: string; channels: Channel[] };
 
 export const Route = createFileRoute("/telegram")({
   component: RouteComponent,
@@ -18,6 +20,9 @@ function RouteComponent() {
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
+  const [channelGroups, setChannelGroups] = useState<ChannelGroup[]>([]);
+  const [channelsLoading, setChannelsLoading] = useState(false);
+  const [channelsError, setChannelsError] = useState<string | null>(null);
 
   async function fetchStatus() {
     setError(null);
@@ -34,6 +39,25 @@ function RouteComponent() {
   useEffect(() => {
     void fetchStatus();
   }, []);
+
+  useEffect(() => {
+    if (status.loggedIn) void fetchChannels();
+  }, [status.loggedIn]);
+
+  async function fetchChannels() {
+    setChannelsError(null);
+    setChannelsLoading(true);
+    try {
+      const res = await fetch(`${apiBase}/api/telegram/channels`);
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      const data = (await res.json()) as { groups: ChannelGroup[] };
+      setChannelGroups(data.groups);
+    } catch (e: any) {
+      setChannelsError(e?.message || "Error");
+    } finally {
+      setChannelsLoading(false);
+    }
+  }
 
   async function startLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -169,6 +193,26 @@ function RouteComponent() {
       {step === "done" && (
         <div className="mt-4">
           <div className="text-green-400">Sesión configurada correctamente.</div>
+        </div>
+      )}
+
+      {status.loggedIn && (
+        <div className="mt-6">
+          <h2 className="text-lg font-semibold mb-2">Canales disponibles</h2>
+          {channelsError && (
+            <div className="text-red-400 text-sm mb-2">{channelsError}</div>
+          )}
+          {channelsLoading && <div className="text-sm">Cargando…</div>}
+          {channelGroups.map((g) => (
+            <div key={g.group} className="mb-4">
+              <h3 className="font-medium">{g.group}</h3>
+              <ul className="list-disc ml-5">
+                {g.channels.map((ch) => (
+                  <li key={ch.id}>{ch.title}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
       )}
     </div>
