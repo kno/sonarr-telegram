@@ -80,10 +80,12 @@ export class TelegramService {
     this.client.addEventHandler(async (update) => {
       try {
         if (!('message' in update) || !update.message) return;
-        const msg = (update as any).message as Api.Message;
+        const msg = update.message as Api.Message;
         if (!(msg instanceof Api.Message)) return;
-        const peer = msg.peerId as any;
-        const channelId = 'channelId' in peer ? Number(peer.channelId?.toString()) : undefined;
+        const peer = msg.peerId as { channelId?: bigint };
+        const channelId = peer.channelId
+          ? Number(peer.channelId.toString())
+          : undefined;
         if (allow.size > 0 && (!channelId || !allow.has(channelId))) return;
 
         const text = msg.message || '';
@@ -110,6 +112,41 @@ export class TelegramService {
     const session = (this.client.session as StringSession).save();
     const encrypted = encrypt(session, env.TELEGRAM_ENC_SECRET);
     await TelegramSessionRepo.upsert(encrypted, 1);
+  }
+
+  async listChannels(): Promise<
+    { group: string; channels: { id: number; title: string }[] }[]
+  > {
+    if (!this.client) throw new Error('Telegram client not connected');
+
+    const dialogs = await this.client.getDialogs({});
+
+    const filtersObj = await this.client.invoke(
+      new Api.messages.GetDialogFilters()
+    );
+    const filterMap = new Map<number, string>();
+    const filters = (
+      filtersObj as { filters?: { id: number; title: string }[] }
+    ).filters;
+    if (filters) {
+      for (const f of filters) filterMap.set(f.id, f.title);
+    }
+
+    const groups = new Map<string, { id: number; title: string }[]>();
+
+    for (const d of dialogs) {
+      if (!(d.isChannel || d.isGroup)) continue;
+      const folderId = (d.dialog as { folderId?: number })?.folderId;
+      const groupName = folderId
+        ? filterMap.get(folderId) ?? `Grupo ${folderId}`
+        : 'Sin grupo';
+      if (!groups.has(groupName)) groups.set(groupName, []);
+      groups
+        .get(groupName)!
+        .push({ id: Number(d.id), title: d.name });
+    }
+
+    return Array.from(groups, ([group, channels]) => ({ group, channels }));
   }
 }
 

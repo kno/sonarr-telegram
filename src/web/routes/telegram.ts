@@ -66,6 +66,16 @@ telegramRouter.get('/status', async (_req, res, next) => {
   }
 });
 
+// GET /api/telegram/channels -> list of accessible channels grouped
+telegramRouter.get('/channels', async (_req, res, next) => {
+  try {
+    const groups = await telegramService.listChannels();
+    res.json({ groups });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /api/telegram/login/start { phone: string }
 telegramRouter.post('/login/start', async (req, res, next) => {
   try {
